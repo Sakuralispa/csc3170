@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>宿舍管理</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .edit-row { display: none; }
+    .action-buttons button { margin-left: 4px; }
+  </style>
+</head>
+<body class="bg-light">
+<div class="container py-5">
+  <h2 class="mb-4 text-center">宿舍管理</h2>
+  <div class="text-center">
+    <a href="/" class="btn btn-outline-secondary mb-3">← 返回主页</a>
+  </div>
+
+  <!-- 添加宿舍表单 -->
+  <div class="card mb-4">
+    <div class="card-header">添加新宿舍</div>
+    <div class="card-body">
+      <form method="post">
+        <input type="hidden" name="form_action" value="insert">
+        <div class="row g-2">
+          <div class="col"><input type="text" name="Dorm_ID" class="form-control" placeholder="宿舍编号" required></div>
+          <div class="col"><input type="text" name="Dorm_Type" class="form-control" placeholder="类型"></div>
+          <div class="col"><input type="number" name="Max_Capacity" class="form-control" placeholder="容量"></div>
+          <div class="col"><input type="text" name="Air_Conditioner" class="form-control" placeholder="空调 true/false"></div>
+          <div class="col"><input type="text" name="Fan" class="form-control" placeholder="风扇 true/false"></div>
+          <div class="col"><input type="text" name="Building_ID" class="form-control" placeholder="楼栋ID"></div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">添加</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 数据表 -->
+  <div class="card mb-4">
+    <div class="card-header">宿舍数据表</div>
+    <div class="card-body">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>宿舍ID</th><th>类型</th><th>容量</th><th>空调</th><th>风扇</th><th>楼栋</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+            <!-- 显示行 -->
+            <tr id="display-{{ loop.index }}">
+              <td>{{ row['Dorm_ID'] }}</td>
+              <td>{{ row['Dorm_Type'] }}</td>
+              <td>{{ row['Max_Capacity'] }}</td>
+              <td>{{ row['Air_Conditioner'] }}</td>
+              <td>{{ row['Fan'] }}</td>
+              <td>{{ row['Building_ID'] }}</td>
+              <td class="action-buttons">
+                <button class="btn btn-sm btn-warning" onclick="editRow({{ loop.index }})">编辑</button>
+                <form method="post" style="display:inline;">
+                  <input type="hidden" name="form_action" value="delete">
+                  <input type="hidden" name="Dorm_ID" value="{{ row['Dorm_ID'] }}">
+                  <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                </form>
+              </td>
+            </tr>
+
+            <!-- 编辑行 -->
+            <tr class="edit-row" id="edit-{{ loop.index }}">
+              <form method="post">
+                <input type="hidden" name="form_action" value="update">
+                <input type="hidden" name="Dorm_ID" value="{{ row['Dorm_ID'] }}">
+                <td>{{ row['Dorm_ID'] }}</td>
+                <td><input type="text" name="Dorm_Type" value="{{ row['Dorm_Type'] }}" class="form-control"></td>
+                <td><input type="number" name="Max_Capacity" value="{{ row['Max_Capacity'] }}" class="form-control"></td>
+                <td><input type="text" name="Air_Conditioner" value="{{ row['Air_Conditioner'] }}" class="form-control"></td>
+                <td><input type="text" name="Fan" value="{{ row['Fan'] }}" class="form-control"></td>
+                <td><input type="text" name="Building_ID" value="{{ row['Building_ID'] }}" class="form-control"></td>
+                <td>
+                  <button type="submit" class="btn btn-sm btn-success">保存</button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit({{ loop.index }})">取消</button>
+                </td>
+              </form>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DeepSeek 查询 -->
+  <div class="card">
+    <div class="card-header">自然语言 SQL 查询</div>
+    <div class="card-body">
+      <form method="post">
+        <input type="hidden" name="form_action" value="query">
+        <div class="input-group">
+          <input type="text" name="query_prompt" class="form-control" placeholder="例如：显示所有有空调的四人间">
+          <button class="btn btn-success" type="submit">生成查询</button>
+        </div>
+      </form>
+
+      {% if sql %}
+        <div class="mt-3">
+          <h6>生成的 SQL：</h6>
+          <pre>{{ sql }}</pre>
+        </div>
+      {% endif %}
+
+      {% if result %}
+        {% if result[0]['错误'] is defined %}
+          <div class="alert alert-danger mt-3">{{ result[0]['错误'] }}</div>
+        {% else %}
+          <h6 class="mt-4">查询结果：</h6>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                {% for col in result[0].keys() %}
+                  <th>{{ col }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in result %}
+                <tr>
+                  {% for val in row.values() %}
+                    <td>{{ val }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function editRow(index) {
+    document.getElementById("display-" + index).style.display = "none";
+    document.getElementById("edit-" + index).style.display = "table-row";
+  }
+
+  function cancelEdit(index) {
+    document.getElementById("edit-" + index).style.display = "none";
+    document.getElementById("display-" + index).style.display = "table-row";
+  }
+</script>
+</body>
+</html>
