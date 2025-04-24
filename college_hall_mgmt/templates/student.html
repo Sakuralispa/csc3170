@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>学生管理</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .edit-row { display: none; }
+    .action-buttons button { margin-left: 4px; }
+  </style>
+</head>
+<body class="bg-light">
+<div class="container py-5">
+  <h2 class="mb-4 text-center">学生管理</h2>
+  <div class="text-center">
+    <a href="/" class="btn btn-outline-secondary mb-3">← 返回主页</a>
+  </div>
+  <!-- 添加表单 -->
+  <div class="card mb-4">
+    <div class="card-header">添加新学生</div>
+    <div class="card-body">
+      <form method="post">
+        <input type="hidden" name="form_action" value="insert">
+        <div class="row g-2">
+          <div class="col"><input type="text" name="Student_ID" class="form-control" placeholder="学号" required></div>
+          <div class="col"><input type="text" name="Name" class="form-control" placeholder="姓名"></div>
+          <div class="col"><input type="text" name="Gender" class="form-control" placeholder="性别"></div>
+          <div class="col"><input type="text" name="Enrollment_Year" class="form-control" placeholder="入学年份"></div>
+          <div class="col"><input type="text" name="Dorm_ID" class="form-control" placeholder="宿舍ID"></div>
+          <div class="col"><input type="text" name="Asset_ID" class="form-control" placeholder="床位ID"></div>
+          <div class="col"><input type="text" name="Phone" class="form-control" placeholder="电话"></div>
+          <div class="col"><input type="text" name="Status" class="form-control" placeholder="状态"></div>
+          <div class="col"><input type="text" name="Tutor_ID" class="form-control" placeholder="导师ID"></div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">添加</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 数据展示 -->
+  <div class="card mb-4">
+    <div class="card-header">学生数据表</div>
+    <div class="card-body">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>学号</th><th>姓名</th><th>性别</th><th>入学年份</th><th>宿舍</th><th>床位</th><th>电话</th><th>状态</th><th>导师</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+            <!-- 显示模式 -->
+            <tr class="display-row" id="display-{{ loop.index }}">
+              <td>{{ row['Student_ID'] }}</td>
+              <td>{{ row['Name'] }}</td>
+              <td>{{ row['Gender'] }}</td>
+              <td>{{ row['Enrollment_Year'] }}</td>
+              <td>{{ row['Dorm_ID'] }}</td>
+              <td>{{ row['Asset_ID'] }}</td>
+              <td>{{ row['Phone'] }}</td>
+              <td>{{ row['Status'] }}</td>
+              <td>{{ row['Tutor_ID'] }}</td>
+              <td class="action-buttons">
+                <button class="btn btn-sm btn-warning" onclick="editRow({{ loop.index }})">编辑</button>
+                <form method="post" style="display:inline;">
+                  <input type="hidden" name="form_action" value="delete">
+                  <input type="hidden" name="Student_ID" value="{{ row['Student_ID'] }}">
+                  <button class="btn btn-sm btn-danger" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+
+            <!-- 编辑模式 -->
+            <tr class="edit-row" id="edit-{{ loop.index }}">
+              <form method="post">
+                <input type="hidden" name="form_action" value="update">
+                <input type="hidden" name="Student_ID" value="{{ row['Student_ID'] }}">
+                <td>{{ row['Student_ID'] }}</td>
+                <td><input type="text" name="Name" value="{{ row['Name'] }}" class="form-control"></td>
+                <td><input type="text" name="Gender" value="{{ row['Gender'] }}" class="form-control"></td>
+                <td><input type="text" name="Enrollment_Year" value="{{ row['Enrollment_Year'] }}" class="form-control"></td>
+                <td><input type="text" name="Dorm_ID" value="{{ row['Dorm_ID'] }}" class="form-control"></td>
+                <td><input type="text" name="Asset_ID" value="{{ row['Asset_ID'] }}" class="form-control"></td>
+                <td><input type="text" name="Phone" value="{{ row['Phone'] }}" class="form-control"></td>
+                <td><input type="text" name="Status" value="{{ row['Status'] }}" class="form-control"></td>
+                <td><input type="text" name="Tutor_ID" value="{{ row['Tutor_ID'] }}" class="form-control"></td>
+                <td>
+                  <button type="submit" class="btn btn-sm btn-success">保存</button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit({{ loop.index }})">取消</button>
+                </td>
+              </form>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 自然语言 SQL 查询 -->
+  <div class="card">
+    <div class="card-header">自然语言 SQL 查询</div>
+    <div class="card-body">
+      <form method="post">
+        <input type="hidden" name="form_action" value="query">
+        <div class="input-group">
+          <input type="text" name="query_prompt" class="form-control" placeholder="例如：列出所有女生">
+          <button class="btn btn-success" type="submit">生成查询</button>
+        </div>
+      </form>
+
+      {% if sql %}
+        <div class="mt-3">
+          <h6>生成的 SQL：</h6>
+          <pre>{{ sql }}</pre>
+        </div>
+      {% endif %}
+
+      {% if result %}
+        {% if result[0]['错误'] is defined %}
+          <div class="alert alert-danger mt-3">{{ result[0]['错误'] }}</div>
+        {% else %}
+          <h6 class="mt-4">查询结果：</h6>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                {% for col in result[0].keys() %}
+                  <th>{{ col }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in result %}
+                <tr>
+                  {% for val in row.values() %}
+                    <td>{{ val }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function editRow(index) {
+    document.getElementById("display-" + index).style.display = "none";
+    document.getElementById("edit-" + index).style.display = "table-row";
+  }
+
+  function cancelEdit(index) {
+    document.getElementById("edit-" + index).style.display = "none";
+    document.getElementById("display-" + index).style.display = "table-row";
+  }
+</script>
+</body>
+</html>
